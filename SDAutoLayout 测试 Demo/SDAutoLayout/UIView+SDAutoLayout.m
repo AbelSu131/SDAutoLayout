@@ -55,6 +55,9 @@
 @property (nonatomic, strong) SDAutoLayoutModelItem *equalCenterX;
 @property (nonatomic, strong) SDAutoLayoutModelItem *equalCenterY;
 
+@property (nonatomic, strong) SDAutoLayoutModelItem *widthEqualHeight;
+@property (nonatomic, strong) SDAutoLayoutModelItem *heightEqualWidth;
+
 @end
 
 @implementation SDAutoLayoutModel
@@ -83,6 +86,8 @@
 @synthesize maxHeightIs = _maxHeightIs;
 @synthesize minWidthIs = _minWidthIs;
 @synthesize minHeightIs = _minHeightIs;
+@synthesize widthEqualToHeight = _widthEqualToHeight;
+@synthesize heightEqualToWidth = _heightEqualToWidth;
 
 - (MarginToView)leftSpaceToView
 {
@@ -372,15 +377,54 @@
     return _spaceToSuperView;
 }
 
+- (SameWidthHeight)widthEqualToHeight
+{
+    __weak typeof(self) weakSelf = self;
+    
+    if (!_widthEqualToHeight) {
+        _widthEqualToHeight = ^() {
+            weakSelf.widthEqualHeight = [SDAutoLayoutModelItem new];
+            return weakSelf;
+        };
+    }
+    return _widthEqualToHeight;
+}
+
+- (SameWidthHeight)heightEqualToWidth
+{
+    __weak typeof(self) weakSelf = self;
+    
+    if (!_heightEqualToWidth) {
+        _heightEqualToWidth = ^() {
+            weakSelf.heightEqualWidth = [SDAutoLayoutModelItem new];
+            return weakSelf;
+        };
+    }
+    return _heightEqualToWidth;
+}
+
 @end
 
 
-@implementation UIView (SDAutoHeight)
+@implementation UIView (SDAutoHeightWidth)
 
 - (void)setupAutoHeightWithBottomView:(UIView *)bottomView bottomMargin:(CGFloat)bottomMargin
 {
-    self.sd_bottomView = bottomView;
+    if (!bottomView) return;
+    [self.sd_bottomViewsArray addObject:bottomView];
     self.sd_bottomViewBottomMargin = bottomMargin;
+}
+
+- (void)setupAutoHeightWithBottomViewsArray:(NSArray *)bottomViewsArray bottomMargin:(CGFloat)bottomMargin
+{
+    if (!bottomViewsArray) return;
+    [self.sd_bottomViewsArray addObjectsFromArray:bottomViewsArray];
+    self.sd_bottomViewBottomMargin = bottomMargin;
+}
+
+- (void)updateLayout
+{
+    [self.superview layoutSubviews];
 }
 
 - (CGFloat)autoHeight
@@ -393,14 +437,13 @@
     objc_setAssociatedObject(self, @selector(autoHeight), @(autoHeight), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-- (UIView *)sd_bottomView
+- (NSMutableArray *)sd_bottomViewsArray
 {
+    NSMutableArray *array = objc_getAssociatedObject(self, _cmd);
+    if (!array) {
+        objc_setAssociatedObject(self, _cmd, [NSMutableArray new], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
     return objc_getAssociatedObject(self, _cmd);
-}
-
-- (void)setSd_bottomView:(UIView *)sd_bottomView
-{
-    objc_setAssociatedObject(self, @selector(sd_bottomView), sd_bottomView, OBJC_ASSOCIATION_ASSIGN);
 }
 
 - (CGFloat)sd_bottomViewBottomMargin
@@ -411,6 +454,26 @@
 - (void)setSd_bottomViewBottomMargin:(CGFloat)sd_bottomViewBottomMargin
 {
     objc_setAssociatedObject(self, @selector(sd_bottomViewBottomMargin), @(sd_bottomViewBottomMargin), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (UIView *)sd_rightView
+{
+    return objc_getAssociatedObject(self, _cmd);
+}
+
+- (void)setSd_rightView:(UIView *)sd_rightView
+{
+    objc_setAssociatedObject(self, @selector(sd_rightView), sd_rightView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (CGFloat)sd_rightMargin
+{
+    return [objc_getAssociatedObject(self, _cmd) floatValue];
+}
+
+- (void)setSd_rightMargin:(CGFloat)sd_rightMargin
+{
+    objc_setAssociatedObject(self, @selector(sd_rightMargin), @(sd_rightMargin), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 @end
@@ -466,6 +529,12 @@
 - (void)setupAutoContentSizeWithBottomView:(UIView *)bottomView bottomMargin:(CGFloat)bottomMargin
 {
     [self setupAutoHeightWithBottomView:bottomView bottomMargin:bottomMargin];
+}
+
+- (void)setupAutoContentSizeWithRightView:(UIView *)rightView rightMargin:(CGFloat)rightMargin
+{
+    [self setSd_rightView:rightView];
+    [self setSd_rightMargin:rightMargin];
 }
 
 @end
@@ -559,6 +628,19 @@
 
 - (SDAutoLayoutModel *)sd_layout
 {
+    
+#ifdef SDDebugWithAssert
+    /*
+    卡在这里说明你的要自动布局的view在没有添加到父view的情况下就开始设置布局,你需要这样：
+    1.  UIView *view = [UIView new];
+    2.  [superView addSubview:view];
+    3.  view.sd_layout
+        .leftEqualToView()...
+     */
+    NSAssert(self.superview, @">>>>>>>>>在加入父view之后才可以做自动布局设置");
+    
+#endif
+    
     SDAutoLayoutModel *model = [self ownLayoutModel];
     if (!model) {
         model = [SDAutoLayoutModel new];
@@ -586,12 +668,12 @@
     
     if (self.sd_equalWidthSubviews.count) {
         __block CGFloat totalMargin = 0;
-        [self.sd_equalWidthSubviews enumerateObjectsUsingBlock:^(UIView * _Nonnull view, NSUInteger idx, BOOL * _Nonnull stop) {
+        [self.sd_equalWidthSubviews enumerateObjectsUsingBlock:^(UIView *view, NSUInteger idx, BOOL *stop) {
             SDAutoLayoutModel *model = view.sd_layout;
             totalMargin += ([model.left.value floatValue] + [model.right.value floatValue]);
         }];
         CGFloat averageWidth = (self.width - totalMargin) / self.sd_equalWidthSubviews.count;
-        [self.sd_equalWidthSubviews enumerateObjectsUsingBlock:^(UIView * _Nonnull view, NSUInteger idx, BOOL * _Nonnull stop) {
+        [self.sd_equalWidthSubviews enumerateObjectsUsingBlock:^(UIView *view, NSUInteger idx, BOOL *stop) {
             view.width = averageWidth;
             view.fixedWith = @(averageWidth);
         }];
@@ -609,14 +691,40 @@
             cell = (UITableViewCell *)cell.superview;
         }
         if ([cell isKindOfClass:[UITableViewCell class]]) {
-            cell.autoHeight = cell.sd_bottomView.bottom + cell.sd_bottomViewBottomMargin;
+            CGFloat height = 0;
+            for (UIView *view in cell.sd_bottomViewsArray) {
+                if (view.sd_bottomViewsArray.count) {
+                    [view layoutSubviews];
+                }
+                height = MAX(height, view.bottom);
+            }
+            cell.autoHeight = height + cell.sd_bottomViewBottomMargin;
         }
-    } else if (![self isKindOfClass:[UITableViewCell class]] && self.sd_bottomView) {
-        CGFloat contentHeight = self.sd_bottomView.bottom + self.sd_bottomViewBottomMargin;
+    } else if (![self isKindOfClass:[UITableViewCell class]] && (self.sd_bottomViewsArray.count || self.sd_rightView)) {
+        CGFloat contentHeight = 0;
+        CGFloat contentWidth = 0;
+        if (self.sd_bottomViewsArray) {
+            CGFloat height = 0;
+            for (UIView *view in self.sd_bottomViewsArray) {
+                if (view.sd_bottomViewsArray.count) {
+                    [view layoutSubviews];
+                }
+                height = MAX(height, view.bottom);
+            }
+            contentHeight = height + self.sd_bottomViewBottomMargin;
+        }
+        if (self.sd_rightView) {
+            contentWidth = self.sd_rightView.right + self.sd_rightMargin;
+        }
         if ([self isKindOfClass:[UIScrollView class]]) {
             UIScrollView *scrollView = (UIScrollView *)self;
             CGSize contentSize = scrollView.contentSize;
-            contentSize.height = contentHeight;
+            if (contentHeight > 0) {
+                contentSize.height = contentHeight;
+            }
+            if (contentWidth > 0) {
+                contentSize.width = contentWidth;
+            }
             if (contentSize.width <= 0) {
                 contentSize.width = scrollView.width;
             }
@@ -728,7 +836,11 @@
         }
     } else if (model.equalRight) {
         if (!view.fixedWith) {
-            view.width = model.equalRight.refView.right - view.left;
+            if (model.equalRight.refView == view.superview) {
+                view.width = model.equalRight.refView.width - view.left;
+            } else {
+                view.width = model.equalRight.refView.right - view.left;
+            }
         }
         
         view.right = model.equalRight.refView.right;
@@ -846,6 +958,14 @@
     
     if (model.minHeight && [model.minHeight floatValue] > view.height) {
         view.height = [model.minHeight floatValue];
+    }
+    
+    if (model.widthEqualHeight) {
+        view.width = view.height;
+    }
+    
+    if (model.heightEqualWidth) {
+        view.height = view.width;
     }
     
     CGFloat cornerRadius = view.layer.cornerRadius;

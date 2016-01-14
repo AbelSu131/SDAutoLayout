@@ -84,6 +84,7 @@
 //    .topSpaceToView(self.view0, 50)
 //    .heightRatioToView(self.view, 1)
 //    .widthRatioToView(self.view5, 1);
+    
 
 }
 
@@ -99,8 +100,8 @@
     [UIView animateWithDuration:0.8 animations:^{
         self.view0.sd_layout
         .widthRatioToView(self.view, _widthRatio);
-        [self.view layoutSubviews];
-        [self.view0 layoutSubviews];
+        [self.view0 updateLayout];
+        [self.view5 updateLayout];
     }];
     
     
