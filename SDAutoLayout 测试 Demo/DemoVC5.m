@@ -1,9 +1,9 @@
 //
-//  DemoVC9.m
+//  DemoVC5.m
 //  SDAutoLayout 测试 Demo
 //
-//  Created by gsd on 15/12/23.
-//  Copyright © 2015年 gsd. All rights reserved.
+//  Created by gsd on 15/11/22.
+//  Copyright (c) 2015年 gsd. All rights reserved.
 //
 
 /*
@@ -12,7 +12,7 @@
  *                                                                                *
  * 在您使用此自动布局库的过程中如果出现bug请及时以以下任意一种方式联系我们，我们会及时修复bug并  *
  * 帮您解决问题。                                                                    *
- * 持续更新地址: https://github.com/gsdios/SDAutoLayout                              *
+ * QQ    : 2689718696(gsdios)                                                      *
  * Email : gsdios@126.com                                                          *
  * GitHub: https://github.com/gsdios                                               *
  * 新浪微博:GSD_iOS                                                                 *
@@ -21,28 +21,22 @@
  
  */
 
-#import "DemoVC9.h"
 
-#import "Demo9Model.h"
-#import "DemoVC9Cell.h"
-
-#import "DemoVC9HeaderView.h"
+#import "DemoVC5.h"
 
 #import "DemoVC5CellTableViewCell.h"
 
-#import "SDRefresh.h"
+#import "SDRefeshView/SDRefresh.h"
 
 #import "UITableView+SDAutoTableViewCellHeight.h"
 
-#define kDemoVC9CellId @"demovc9cell"
-
-@interface DemoVC9 ()
+@interface DemoVC5 ()
 
 @property (nonatomic, strong) NSMutableArray *modelsArray;
 
 @end
 
-@implementation DemoVC9
+@implementation DemoVC5
 {
     SDRefreshFooterView *_refreshFooter;
 }
@@ -50,11 +44,8 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
- 
-//    self.edgesForExtendedLayout = UIRectEdgeAll;
-    self.automaticallyAdjustsScrollViewInsets = NO;
     
-//    self.tableView.estimatedRowHeight = 100;
+    self.tableView.estimatedRowHeight = 100;
     
     [self creatModelsWithCount:10];
     
@@ -71,12 +62,6 @@
             [weakRefreshFooter endRefreshing];
         });
     };
-    
-    DemoVC9HeaderView *headerView = [DemoVC9HeaderView new];
-    headerView.frame = CGRectMake(0, 0, 0, 260);
-    self.tableView.tableHeaderView = headerView;
-    
-    [self.tableView registerClass:[DemoVC9Cell class] forCellReuseIdentifier:kDemoVC9CellId];
 }
 
 - (void)creatModelsWithCount:(NSInteger)count
@@ -110,33 +95,24 @@
                                      @"pic2.jpg",
                                      @"pic3.jpg",
                                      @"pic4.jpg",
-                                     @"pic5.jpg",
-                                     @"pic6.jpg",
-                                     @"pic7.jpg",
-                                     @"pic8.jpg"
                                      ];
     
     for (int i = 0; i < count; i++) {
         int iconRandomIndex = arc4random_uniform(5);
         int nameRandomIndex = arc4random_uniform(5);
         int contentRandomIndex = arc4random_uniform(5);
+        int picRandomIndex = arc4random_uniform(5);
         
-        Demo9Model *model = [Demo9Model new];
+        DemoVC5Model *model = [DemoVC5Model new];
         model.iconName = iconImageNamesArray[iconRandomIndex];
         model.name = namesArray[nameRandomIndex];
         model.content = textArray[contentRandomIndex];
         
         
-        // 模拟“随机图片”
-        int random = arc4random_uniform(10);
-        
-        NSMutableArray *temp = [NSMutableArray new];
-        for (int i = 0; i < random; i++) {
-            int randomIndex = arc4random_uniform(9);
-            [temp addObject:picImageNamesArray[randomIndex]];
-        }
-        if (temp.count) {
-            model.picNamesArray = [temp copy];
+        // 模拟“有或者无图片”
+        int random = arc4random_uniform(100);
+        if (random <= 80) {
+            model.picName = picImageNamesArray[picRandomIndex];
         }
         
         [self.modelsArray addObject:model];
@@ -145,22 +121,31 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
+    // >>>>>>>>>>>>>>>>>>>>> * cell自适应步骤1 * >>>>>>>>>>>>>>>>>>>>>>>>
+    
+    [self.tableView startAutoCellHeightWithCellClass:[DemoVC5CellTableViewCell class] contentViewWidth:[UIScreen mainScreen].bounds.size.width];
+    
+    
     return self.modelsArray.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    DemoVC9Cell *cell = [tableView dequeueReusableCellWithIdentifier:kDemoVC9CellId];
-    
+    static NSString *ID = @"test";
+    DemoVC5CellTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:ID];
+    if (!cell) {
+        cell = [[DemoVC5CellTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:ID];
+    }
     cell.model = self.modelsArray[indexPath.row];
     return cell;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    // >>>>>>>>>>>>>>>>>>>>> * cell自适应 * >>>>>>>>>>>>>>>>>>>>>>>>
-    CGFloat h = [self cellHeightForIndexPath:indexPath cellContentViewWidth:[UIScreen mainScreen].bounds.size.width];
-    return h;
+    // >>>>>>>>>>>>>>>>>>>>> * cell自适应步骤2 * >>>>>>>>>>>>>>>>>>>>>>>>
+    /* model 为模型实例， keyPath 为 model 的属性名，通过 kvc 统一赋值接口 */
+    return [self.tableView cellHeightForIndexPath:indexPath model:self.modelsArray[indexPath.row] keyPath:@"model"];
 }
+
 
 @end

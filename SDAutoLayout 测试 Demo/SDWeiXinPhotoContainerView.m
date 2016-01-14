@@ -30,46 +30,16 @@
 
 @interface SDWeiXinPhotoContainerView () <SDPhotoBrowserDelegate>
 
-@property (nonatomic, strong) NSArray *imageViewsArray;
-
 @end
 
 @implementation SDWeiXinPhotoContainerView
-
-- (instancetype)initWithFrame:(CGRect)frame
-{
-    if (self = [super initWithFrame:frame]) {
-        [self setup];
-    }
-    return self;
-}
-
-- (void)setup
-{
-    NSMutableArray *temp = [NSMutableArray new];
-    
-    for (int i = 0; i < 9; i++) {
-        UIImageView *imageView = [UIImageView new];
-        [self addSubview:imageView];
-        imageView.userInteractionEnabled = YES;
-        imageView.tag = i;
-        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapImageView:)];
-        [imageView addGestureRecognizer:tap];
-        [temp addObject:imageView];
-    }
-    
-    self.imageViewsArray = [temp copy];
-}
 
 
 - (void)setPicPathStringsArray:(NSArray *)picPathStringsArray
 {
     _picPathStringsArray = picPathStringsArray;
     
-    for (long i = _picPathStringsArray.count; i < self.imageViewsArray.count; i++) {
-        UIImageView *imageView = [self.imageViewsArray objectAtIndex:i];
-        imageView.hidden = YES;
-    }
+    [self.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
     
     if (_picPathStringsArray.count == 0) {
         self.height = 0;
@@ -93,10 +63,15 @@
     [_picPathStringsArray enumerateObjectsUsingBlock:^(NSString *  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         long columnIndex = idx % perRowItemCount;
         long rowIndex = idx / perRowItemCount;
-        UIImageView *imageView = [_imageViewsArray objectAtIndex:idx];
-        imageView.hidden = NO;
+        UIImageView *imageView = [UIImageView new];
         imageView.image = [UIImage imageNamed:obj];
         imageView.frame = CGRectMake(columnIndex * (itemW + margin), rowIndex * (itemH + margin), itemW, itemH);
+        [self addSubview:imageView];
+        
+        imageView.userInteractionEnabled = YES;
+        imageView.tag = idx;
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapImageView:)];
+        [imageView addGestureRecognizer:tap];
     }];
     
     CGFloat w = perRowItemCount * itemW + (perRowItemCount - 1) * margin;

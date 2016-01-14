@@ -55,7 +55,7 @@
     
     self.view3.sd_layout
     .widthIs(250)
-    .heightEqualToWidth()
+    .heightIs(250)
     .centerXEqualToView(scrollView)
     .topSpaceToView(self.view2, 20);
 

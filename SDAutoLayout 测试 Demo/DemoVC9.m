@@ -1,9 +1,9 @@
 //
-//  DemoVC5.m
+//  DemoVC9.m
 //  SDAutoLayout 测试 Demo
 //
-//  Created by gsd on 15/11/22.
-//  Copyright (c) 2015年 gsd. All rights reserved.
+//  Created by gsd on 15/12/23.
+//  Copyright © 2015年 gsd. All rights reserved.
 //
 
 /*
@@ -12,7 +12,7 @@
  *                                                                                *
  * 在您使用此自动布局库的过程中如果出现bug请及时以以下任意一种方式联系我们，我们会及时修复bug并  *
  * 帮您解决问题。                                                                    *
- * QQ    : 2689718696(gsdios)                                                      *
+ * 持续更新地址: https://github.com/gsdios/SDAutoLayout                              *
  * Email : gsdios@126.com                                                          *
  * GitHub: https://github.com/gsdios                                               *
  * 新浪微博:GSD_iOS                                                                 *
@@ -21,26 +21,28 @@
  
  */
 
+#import "DemoVC9.h"
 
-#import "DemoVC5.h"
+#import "Demo9Model.h"
+#import "DemoVC9Cell.h"
+
+#import "DemoVC9HeaderView.h"
 
 #import "DemoVC5CellTableViewCell.h"
 
-#import "SDRefresh.h"
+#import "SDRefeshView/SDRefresh.h"
 
 #import "UITableView+SDAutoTableViewCellHeight.h"
 
-#import "SDCycleScrollView.h"
+#define kDemoVC9CellId @"demovc9cell"
 
-#import "UIView+SDAutoLayout.h"
-
-@interface DemoVC5 ()
+@interface DemoVC9 ()
 
 @property (nonatomic, strong) NSMutableArray *modelsArray;
 
 @end
 
-@implementation DemoVC5
+@implementation DemoVC9
 {
     SDRefreshFooterView *_refreshFooter;
 }
@@ -48,10 +50,11 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+ 
+//    self.edgesForExtendedLayout = UIRectEdgeAll;
+    self.automaticallyAdjustsScrollViewInsets = NO;
     
-//    self.tableView.estimatedRowHeight = 100;
-    
-    [self setupHeaderView];
+    self.tableView.estimatedRowHeight = 100;
     
     [self creatModelsWithCount:10];
     
@@ -68,54 +71,12 @@
             [weakRefreshFooter endRefreshing];
         });
     };
-}
-
-- (void)setupHeaderView
-{
-    UIView *header = [UIView new];
     
-    NSArray *picImageNamesArray = @[ @"pic1.jpg",
-                                     @"pic2.jpg",
-                                     @"pic3.jpg",
-                                     @"pic4.jpg",
-                                     ];
+    DemoVC9HeaderView *headerView = [DemoVC9HeaderView new];
+    headerView.frame = CGRectMake(0, 0, 0, 260);
+    self.tableView.tableHeaderView = headerView;
     
-    SDCycleScrollView *scrollView = [SDCycleScrollView new];
-    scrollView.localizationImageNamesGroup = picImageNamesArray;
-    [header addSubview:scrollView];
-    
-    UILabel *tagLabel = [UILabel new];
-    tagLabel.font = [UIFont systemFontOfSize:13];
-    tagLabel.textColor = [UIColor lightGrayColor];
-    tagLabel.text = @"更新时间：2016.01.08";
-    [header addSubview:tagLabel];
-    
-    UIView *bottomLine = [UIView new];
-    bottomLine.backgroundColor = [[UIColor lightGrayColor] colorWithAlphaComponent:0.3];
-    [header addSubview:bottomLine];
-    
-    scrollView.sd_layout
-    .leftSpaceToView(header, 0)
-    .topSpaceToView(header, 0)
-    .rightSpaceToView(header, 0)
-    .heightIs(150);
-    
-    tagLabel.sd_layout
-    .leftSpaceToView(header, 10)
-    .topSpaceToView(scrollView, 0)
-    .heightIs(25)
-    .rightSpaceToView(header, 0);
-    
-    bottomLine.sd_layout
-    .topSpaceToView(tagLabel, 0)
-    .leftSpaceToView(header, 0)
-    .rightSpaceToView(header, 0)
-    .heightIs(1);
-    
-    [header setupAutoHeightWithBottomView:bottomLine bottomMargin:0];
-    [header layoutSubviews];
-    
-    self.tableView.tableHeaderView = header;
+    [self.tableView registerClass:[DemoVC9Cell class] forCellReuseIdentifier:kDemoVC9CellId];
 }
 
 - (void)creatModelsWithCount:(NSInteger)count
@@ -149,24 +110,33 @@
                                      @"pic2.jpg",
                                      @"pic3.jpg",
                                      @"pic4.jpg",
+                                     @"pic5.jpg",
+                                     @"pic6.jpg",
+                                     @"pic7.jpg",
+                                     @"pic8.jpg"
                                      ];
     
     for (int i = 0; i < count; i++) {
         int iconRandomIndex = arc4random_uniform(5);
         int nameRandomIndex = arc4random_uniform(5);
         int contentRandomIndex = arc4random_uniform(5);
-        int picRandomIndex = arc4random_uniform(5);
         
-        DemoVC5Model *model = [DemoVC5Model new];
+        Demo9Model *model = [Demo9Model new];
         model.iconName = iconImageNamesArray[iconRandomIndex];
         model.name = namesArray[nameRandomIndex];
         model.content = textArray[contentRandomIndex];
         
         
-        // 模拟“有或者无图片”
-        int random = arc4random_uniform(100);
-        if (random <= 80) {
-            model.picName = picImageNamesArray[picRandomIndex];
+        // 模拟“随机图片”
+        int random = arc4random_uniform(10);
+        
+        NSMutableArray *temp = [NSMutableArray new];
+        for (int i = 0; i < random; i++) {
+            int randomIndex = arc4random_uniform(9);
+            [temp addObject:picImageNamesArray[randomIndex]];
+        }
+        if (temp.count) {
+            model.picNamesArray = [temp copy];
         }
         
         [self.modelsArray addObject:model];
@@ -175,31 +145,22 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    // >>>>>>>>>>>>>>>>>>>>> * cell自适应步骤1 * >>>>>>>>>>>>>>>>>>>>>>>>
-    
-    [self.tableView startAutoCellHeightWithCellClass:[DemoVC5CellTableViewCell class] contentViewWidth:[UIScreen mainScreen].bounds.size.width];
-    
-    
     return self.modelsArray.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    static NSString *ID = @"test";
-    DemoVC5CellTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:ID];
-    if (!cell) {
-        cell = [[DemoVC5CellTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:ID];
-    }
+    DemoVC5CellTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:kDemoVC9CellId];
+    
     cell.model = self.modelsArray[indexPath.row];
     return cell;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    // >>>>>>>>>>>>>>>>>>>>> * cell自适应步骤2 * >>>>>>>>>>>>>>>>>>>>>>>>
-    /* model 为模型实例， keyPath 为 model 的属性名，通过 kvc 统一赋值接口 */
-    return [self.tableView cellHeightForIndexPath:indexPath model:self.modelsArray[indexPath.row] keyPath:@"model"];
+    // >>>>>>>>>>>>>>>>>>>>> * cell自适应 * >>>>>>>>>>>>>>>>>>>>>>>>
+    CGFloat h = [self cellHeightForIndexPath:indexPath cellContentViewWidth:[UIScreen mainScreen].bounds.size.width];
+    return h;
 }
-
 
 @end

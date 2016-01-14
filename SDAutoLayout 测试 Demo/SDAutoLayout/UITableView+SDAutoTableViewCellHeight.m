@@ -49,11 +49,11 @@
     return self;
 }
 
-- (instancetype)initWithCellClasses:(NSArray *)cellClassArray
+- (instancetype)initWithCellClasses:(NSArray<Class> *)cellClassArray
 {
     if (self = [super init]) {
         _modelTableview = [UITableView new];
-        [cellClassArray enumerateObjectsUsingBlock:^(Class obj, NSUInteger idx, BOOL *stop) {
+        [cellClassArray enumerateObjectsUsingBlock:^(Class  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             [self registerCellWithCellClass:obj];
         }];
         _cacheDictionary = [NSMutableDictionary new];
@@ -91,41 +91,17 @@
     [_cacheDictionary removeAllObjects];
 }
 
-- (NSNumber *)heightCacheForIndexPath:(NSIndexPath *)indexPath
-{
-    NSString *cacheKey = [NSString stringWithFormat:@"%ld%ld", (long)indexPath.section, (long)indexPath.row];
-    return (NSNumber *)[_cacheDictionary objectForKey:cacheKey];
-}
-
 - (CGFloat)cellHeightForIndexPath:(NSIndexPath *)indexPath model:(id)model keyPath:(NSString *)keyPath
 {
-    
-    NSNumber *cacheHeight = [self heightCacheForIndexPath:indexPath];
+    NSString *cacheKey = [NSString stringWithFormat:@"%ld%ld", (long)indexPath.section, (long)indexPath.row];
+    NSNumber *cacheHeight = [_cacheDictionary objectForKey:cacheKey];
     if (cacheHeight) {
         return [cacheHeight floatValue];
     } else {
-        if (!self.modelCell) {
-            return 0;
-        }
-        
         if (model && keyPath) {
             [self.modelCell setValue:model forKey:keyPath];
         }
-        
-        
-#ifdef SDDebugWithAssert
-        /*
-         如果程序卡在了这里说明你的cell还没有调用“setupAutoHeightWithBottomView:(UIView *)bottomView bottomMargin:(CGFloat)bottomMargin”方法或者你传递的bottomView为nil，请检查并修改。例：
-         
-         //注意：bottomView不能为nil
-         [cell setupAutoHeightWithBottomView:bottomView bottomMargin:bottomMargin];
-         */
-        NSAssert(self.modelCell.sd_bottomViewsArray.count, @">>>>>> 你的cell还没有调用“setupAutoHeightWithBottomView:(UIView *)bottomView bottomMargin:(CGFloat)bottomMargin”方法或者你传递的bottomView为nil，请检查并修改");
-        
-#endif
-    
         [self.modelCell.contentView layoutSubviews];
-        NSString *cacheKey = [NSString stringWithFormat:@"%ld%ld", (long)indexPath.section, (long)indexPath.row];
         [_cacheDictionary setObject:@(self.modelCell.autoHeight) forKey:cacheKey];
         return self.modelCell.autoHeight;
     }
@@ -209,7 +185,7 @@
     self.cellAutoHeightManager.contentViewWidth = contentViewWidth;
 }
 
-- (void)startAutoCellHeightWithCellClasses:(NSArray *)cellClassArray contentViewWidth:(CGFloat)contentViewWidth
+- (void)startAutoCellHeightWithCellClasses:(NSArray<Class> *)cellClassArray contentViewWidth:(CGFloat)contentViewWidth
 {
     if (!self.cellAutoHeightManager) {
         self.cellAutoHeightManager = [[SDCellAutoHeightManager alloc] initWithCellClasses:cellClassArray];
@@ -244,7 +220,20 @@
 
 - (CGFloat)cellHeightForIndexPath:(NSIndexPath *)indexPath cellContentViewWidth:(CGFloat)width
 {
-    return [self cellHeightForIndexPath:indexPath cellContentViewWidth:width tableView:self.tableView];
+    
+    if (!self.tableView.cellAutoHeightManager) {
+        self.tableView.cellAutoHeightManager = [[SDCellAutoHeightManager alloc] init];
+    }
+    if (self.tableView.cellAutoHeightManager.contentViewWidth != width) {
+        self.tableView.cellAutoHeightManager.contentViewWidth = width;
+        [self.tableView.cellAutoHeightManager clearHeightCache];
+    }
+    UITableViewCell *cell = [self.tableView.dataSource tableView:self.tableView cellForRowAtIndexPath:indexPath];
+    self.tableView.cellAutoHeightManager.modelCell = cell;
+    if (cell.contentView.width != width) {
+        cell.contentView.width = width;
+    }
+    return [[self.tableView cellAutoHeightManager] cellHeightForIndexPath:indexPath model:nil keyPath:nil];
 }
 
 @end
@@ -259,9 +248,6 @@
     if (tableView.cellAutoHeightManager.contentViewWidth != width) {
         tableView.cellAutoHeightManager.contentViewWidth = width;
         [tableView.cellAutoHeightManager clearHeightCache];
-    }
-    if ([tableView.cellAutoHeightManager heightCacheForIndexPath:indexPath]) {
-        return [[tableView.cellAutoHeightManager heightCacheForIndexPath:indexPath] floatValue];
     }
     UITableViewCell *cell = [tableView.dataSource tableView:tableView cellForRowAtIndexPath:indexPath];
     tableView.cellAutoHeightManager.modelCell = cell;

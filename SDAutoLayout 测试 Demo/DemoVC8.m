@@ -1,12 +1,12 @@
 //
-//  DemoVC7.m
+//  DemoVC8.m
 //  SDAutoLayout 测试 Demo
 //
-//  Created by gsd on 15/12/17.
+//  Created by gsd on 15/12/22.
 //  Copyright © 2015年 gsd. All rights reserved.
 //
 
-#import "DemoVC7.h"
+#import "DemoVC8.h"
 
 #import "DemoVC7Model.h"
 
@@ -17,15 +17,13 @@
 
 #import "SDRefresh.h"
 
-
-
-@interface DemoVC7 ()
+@interface DemoVC8 ()
 
 @property (nonatomic, strong) NSMutableArray *modelsArray;
 
 @end
 
-@implementation DemoVC7
+@implementation DemoVC8
 {
     SDRefreshFooterView *_refreshFooter;
 }
@@ -33,7 +31,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-//    self.tableView.estimatedRowHeight = 100;
+    self.tableView.estimatedRowHeight = 100;
     
     [self creatModelsWithCount:18];
     
@@ -53,7 +51,7 @@
             [weakRefreshFooter endRefreshing];
         });
     };
-
+    
 }
 
 - (void)creatModelsWithCount:(NSInteger)count
@@ -74,7 +72,7 @@
                            @"然后等比例拉伸到大屏。屏幕宽度返回 320否则在大屏上会显得字大",
                            @"长期处于这种模式下，否则在大屏上会显得字大，内容少这种情况下对界面不会",
                            @"但是建议不要长期处于这种模式下，否则在大屏上会显得字大，内容少，容易遭到用户投诉。",
-                           @"屏幕宽度返回 320；然后等比例拉伸到大屏。这种情况下对界面不会产生任小。但是建议不要长期处于这种模式下，否则在大屏上会显得字大，内容少，容易遭到用户投诉。但是建议不要长期处于这种模式下，否则在大屏上会显得字大，内容少，容易遭到用户投诉。"
+                           @"屏幕宽度返回 320；然后等比例拉伸到大屏。这种情况下对界面不会产生任小。"
                            ];
     
     for (int i = 0; i < count; i++) {
@@ -89,7 +87,7 @@
         int random = arc4random_uniform(100);
         if (random <= 30) {
             NSMutableArray *temp = [NSMutableArray new];
-
+            
             for (int i = 0; i < 3; i++) {
                 int randomIndex = arc4random_uniform(5);
                 NSString *text = iconImageNamesArray[randomIndex];
@@ -108,8 +106,6 @@
 #pragma mark - Table view data source
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-
-    [self.tableView startAutoCellHeightWithCellClasses:@[[DemoVC7Cell class], [DemoVC7Cell2 class]] contentViewWidth:[UIScreen mainScreen].bounds.size.width];
     return self.modelsArray.count;
 }
 
@@ -134,15 +130,10 @@
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    Class currentClass = [DemoVC7Cell class];
-    
-    DemoVC7Model *model = self.modelsArray[indexPath.row];
-    
-    if (model.imagePathsArray.count > 1) {
-        currentClass = [DemoVC7Cell2 class];
-    }
-
-    return [self.tableView cellHeightForIndexPath:indexPath model:model keyPath:@"model" cellClass:currentClass];
+    // >>>>>>>>>>>>>>>>>>>>> * cell自适应设置 * >>>>>>>>>>>>>>>>>>>>>>>>
+    // 只需一行代码即可实现单cell以及多cell的tableview高度自适应
+    return [self cellHeightForIndexPath:indexPath cellContentViewWidth:[UIScreen mainScreen].bounds.size.width];
 }
+
 
 @end
